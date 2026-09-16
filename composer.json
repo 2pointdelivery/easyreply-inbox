@@ -1,0 +1,54 @@
+{
+    "name": "easyreply/inbox",
+    "description": "A self-hosted, installable Laravel shared inbox package: unify email, Slack, WhatsApp, and Instagram with AI-drafted replies and MCP tool access.",
+    "keywords": [
+        "laravel",
+        "shared inbox",
+        "support",
+        "helpdesk",
+        "inertia"
+    ],
+    "homepage": "https://github.com/easyreply/inbox",
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^10.0|^11.0|^12.0",
+        "inertiajs/inertia-laravel": "^1.0|^2.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^2.34|^3.0",
+        "pestphp/pest-plugin-laravel": "^2.3|^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Easyreply\\Inbox\\": "src/",
+            "Easyreply\\Inbox\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Easyreply\\Inbox\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Easyreply\\Inbox\\SharedInboxServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

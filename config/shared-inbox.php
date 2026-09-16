@@ -1,0 +1,175 @@
+<?php
+
+// config/shared-inbox.php
+//
+// Published via `php artisan shared-inbox:install` (or `vendor:publish --tag=shared-inbox-config`).
+// Sections beyond `channels`/`ai`/`mcp`/`integrations` keys are placeholders wired up
+// in later build phases (see BUILD_PROMPT.md) — the structure is fixed now so later
+// phases have a stable config surface to implement against.
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Team Resolver
+    |--------------------------------------------------------------------------
+    |
+    | Class implementing Easyreply\Inbox\Support\Contracts\CurrentTeam, used to
+    | resolve the active team for the current request. The package ships a
+    | sensible default (first team the authenticated user belongs to); override
+    | this if the host app has its own tenancy/session concept of "current team".
+    |
+    */
+    'current_team_resolver' => \Easyreply\Inbox\Support\CurrentTeam::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Channels
+    |--------------------------------------------------------------------------
+    |
+    | Each channel driver is independently enabled. `driver` maps to a class
+    | registered on the ChannelManager (see src/Channels/ChannelManager.php).
+    | Channel-specific credentials live per-Inbox in the database, not here —
+    | these are just which drivers are available and their default config.
+    |
+    */
+    'channels' => [
+
+        'email' => [
+            'enabled' => true,
+            'driver' => \Easyreply\Inbox\Channels\EmailChannelDriver::class,
+            // Which inbound webhook payload format to parse. See BUILD_PROMPT.md
+            // §11 open questions — Postmark's inbound webhook shape is the only
+            // one implemented so far; add a parser + set this per host app to
+            // support others.
+            'inbound_format' => env('SHARED_INBOX_EMAIL_INBOUND_FORMAT', 'postmark'),
+            // Shared secret the inbound webhook request must present (e.g. as a
+            // query string or custom header, configured on the provider side)
+            // before any payload is processed.
+            'webhook_secret' => env('SHARED_INBOX_EMAIL_WEBHOOK_SECRET'),
+        ],
+
+        'slack' => [
+            'enabled' => false,
+            'driver' => \Easyreply\Inbox\Channels\SlackChannelDriver::class,
+            // Signing secret for the Slack App backing this channel (Slack
+            // app-level, shared across every Slack-connected inbox).
+            'signing_secret' => env('SLACK_SIGNING_SECRET'),
+        ],
+
+        'whatsapp' => [
+            'enabled' => false,
+            'driver' => \Easyreply\Inbox\Channels\WhatsAppChannelDriver::class,
+            // Meta app secret + webhook verify token (Meta app-level, shared
+            // across every WhatsApp-connected inbox). Per-inbox credentials
+            // (access_token, phone_number_id) live on the Inbox record.
+            'app_secret' => env('WHATSAPP_APP_SECRET'),
+            'verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        ],
+
+        'instagram' => [
+            'enabled' => false,
+            'driver' => \Easyreply\Inbox\Channels\InstagramChannelDriver::class,
+            // Meta app secret + webhook verify token (Meta app-level, shared
+            // across every Instagram-connected inbox). Per-inbox credentials
+            // (access_token, page_id) live on the Inbox record.
+            'app_secret' => env('INSTAGRAM_APP_SECRET'),
+            'verify_token' => env('INSTAGRAM_WEBHOOK_VERIFY_TOKEN'),
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Slack Routing Notifications
+    |--------------------------------------------------------------------------
+    |
+    | Separate from Slack as an inbound channel: posts a notification to a
+    | Slack channel whenever a new conversation comes in on ANY channel, so
+    | the right people see it without opening the inbox. See
+    | BUILD_PROMPT.md §3.3 ("route new tickets/replies to a Slack channel").
+    |
+    */
+    'slack_routing' => [
+        'enabled' => env('SHARED_INBOX_SLACK_ROUTING_ENABLED', false),
+        'bot_token' => env('SLACK_ROUTING_BOT_TOKEN'),
+        'channel' => env('SLACK_ROUTING_CHANNEL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI Drafting
+    |--------------------------------------------------------------------------
+    |
+    | Provider-agnostic: `driver` resolves via the AiDriverManager. Ships a
+    | NullAiDriver by default (no-op) so the package works with zero AI config.
+    |
+    */
+    'ai' => [
+        'driver' => env('SHARED_INBOX_AI_DRIVER', 'null'),
+
+        'drivers' => [
+            'null' => \Easyreply\Inbox\Ai\NullAiDriver::class,
+            'openai' => \Easyreply\Inbox\Ai\OpenAiReplyDriver::class,
+            'anthropic' => \Easyreply\Inbox\Ai\AnthropicReplyDriver::class,
+        ],
+
+        // Reference driver credentials. Only the one selected above via
+        // `driver` is ever called; both are equally-supported examples, not
+        // a recommendation of one over the other.
+        'openai' => [
+            'api_key' => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        ],
+
+        'anthropic' => [
+            'api_key' => env('ANTHROPIC_API_KEY'),
+            'model' => env('ANTHROPIC_MODEL', 'claude-3-5-haiku-latest'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | MCP (Composio)
+    |--------------------------------------------------------------------------
+    |
+    | Composio.dev is the OAuth/connection broker for MCP tool access. The
+    | package never stores raw provider tokens itself — only Composio's
+    | connection reference. See BUILD_PROMPT.md §3.5.
+    |
+    */
+    'mcp' => [
+        'enabled' => env('SHARED_INBOX_MCP_ENABLED', false),
+        'composio_api_key' => env('COMPOSIO_API_KEY'),
+        'base_url' => env('COMPOSIO_BASE_URL', 'https://backend.composio.dev/api/v1'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optional Integrations
+    |--------------------------------------------------------------------------
+    |
+    | Each integration is independently enabled and never required for core
+    | inbox functionality. See BUILD_PROMPT.md §3.7.
+    |
+    */
+    'integrations' => [
+
+        'linear' => [
+            'enabled' => false,
+            'driver' => \Easyreply\Inbox\Integrations\LinearIntegration::class,
+        ],
+
+        'hubspot' => [
+            'enabled' => false,
+            'driver' => \Easyreply\Inbox\Integrations\HubSpotIntegration::class,
+        ],
+
+        'betterstack' => [
+            'enabled' => false,
+            'driver' => \Easyreply\Inbox\Integrations\BetterstackIntegration::class,
+        ],
+
+    ],
+
+];
