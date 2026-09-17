@@ -41,15 +41,19 @@ setting up the provider side as below. Each channel's webhook URL embeds the
 
 ### Email
 
-Uses [Postmark](https://postmarkapp.com)'s inbound webhook format (the only
-inbound format implemented — see `EmailChannelDriver` to add another
-provider's payload shape).
+Supports two inbound webhook payload shapes — [Postmark](https://postmarkapp.com)
+(default) and [Mailgun](https://www.mailgun.com)'s "Store and Notify" inbound
+webhook — selected via `SHARED_INBOX_EMAIL_INBOUND_FORMAT` (`postmark` or
+`mailgun`). See `EmailChannelDriver::normalizeInbound()` to add another
+provider's payload shape (e.g. SES).
 
-1. On Postmark, set the inbound webhook URL for your server to
+1. On your provider, set the inbound webhook URL to
    `https://your-app.test/shared-inbox/webhooks/email/{inbox}`.
-2. Set `SHARED_INBOX_EMAIL_WEBHOOK_SECRET` in `.env` and configure Postmark to
-   send it as an `X-Shared-Inbox-Webhook-Secret` header (or a custom header
-   rule) — without it, the endpoint accepts unsigned requests.
+2. Set `SHARED_INBOX_EMAIL_WEBHOOK_SECRET` in `.env` and configure the
+   provider to send it as an `X-Shared-Inbox-Webhook-Secret` header (or a
+   custom header rule) — without it, the endpoint accepts unsigned requests.
+   This is a package-level shared secret, not either provider's own native
+   request-signing scheme.
 3. Outbound replies send via Laravel's own configured mailer
    (`config/mail.php`), `From` set to the `Inbox`'s `config.address`.
 
@@ -130,13 +134,64 @@ work).
 
 Never required for the inbox to function. Each needs two things on: the
 package-wide flag in `config/shared-inbox.php`, and the team's own toggle at
-`/shared-inbox/settings/integrations`.
+`/shared-inbox/settings/integrations` — which also has a form for entering
+that integration's credentials (write-only: once saved, the UI only shows
+"Credentials configured", never the stored value back).
 
 | Integration | Config flag | Team credentials (`IntegrationSetting.config`) | What it does |
 |---|---|---|---|
 | Linear | `integrations.linear.enabled` | `api_key`, `team_id` (Linear team) | Link a conversation to a new/existing Linear issue |
 | HubSpot | `integrations.hubspot.enabled` | `api_key` (private app token) | Show CRM context (company, lifecycle stage) in the conversation sidebar |
 | Betterstack | `integrations.betterstack.enabled` | `api_key` | Show an active-incident banner in the conversation sidebar |
+
+## Labels, SLA policies, and internal notes
+
+Three team-scoped organization features, all opt-in and none required for
+the base inbox to work:
+
+- **Labels** — `/shared-inbox/settings/labels` (team owners/admins only)
+  manages the team's label set (name + color); an agent attaches/detaches
+  them on a conversation from its show page (`LabelPicker`). Routes:
+  `POST`/`DELETE /shared-inbox/conversations/{conversation}/labels/{label}`.
+- **SLA policies** — `/shared-inbox/settings/sla-policies` (owners/admins
+  only) sets `first_response_minutes`/`resolution_minutes` per priority.
+  A new conversation's `sla_due_at` is computed automatically from the
+  team's policy matching its priority (see `Conversation::booted()` and
+  `Support/SlaCalculator`); changing a conversation's priority recomputes
+  it. `first_response_at` is stamped the first time an agent sends an
+  outbound message; `resolved_at` when it's marked closed.
+- **Internal notes** — a conversation's "Notes" tab (separate from the
+  customer-facing thread) for team-only commentary. Typing `@` offers a
+  filtered list of team members; mentioned user ids are stored on the note
+  (`mentioned_user_ids`) but no notification is dispatched yet — wire that
+  up in a `NoteCreated`-style listener if you need it, filtering
+  `Note::mentioned_user_ids` isn't itself a broadcastable event today.
+
+Team roles come from the existing `team_user.role` column — `owner` or
+`admin` can manage labels/SLA policies, any team member manages notes and
+attaches existing labels.
+
+## Attachments
+
+Agents can attach files to an outbound reply from the compose box. Stored
+on a standard Laravel filesystem disk (`config('shared-inbox.attachments.disk')`,
+default `local`; `SHARED_INBOX_ATTACHMENTS_MAX_KB` caps upload size, default
+10MB) and shown as download links in the message thread.
+
+Attachments are **not yet forwarded to the channel provider** — `ChannelDriver::send()`
+only receives the reply body today. Forwarding an attachment through, say,
+Slack's `files.upload` or an email's MIME parts is provider-specific enough
+that it's left as a documented follow-up per driver rather than bolted on
+generically here.
+
+## Per-team AI provider override
+
+`SHARED_INBOX_AI_DRIVER` in `.env` sets the package-wide default driver, but
+an individual team can override it at `/shared-inbox/settings/ai` — pick any
+driver registered in `config('shared-inbox.ai.drivers')`, or "Use global
+default" to clear the override. `AiDraftController` reads the acting team's
+`ai_driver` column first, falling through to the global config only when
+it's unset.
 
 ## Frontend integration
 
@@ -210,7 +265,7 @@ composer install
 composer test
 ```
 
-The test suite (79 tests) runs entirely against an in-memory sqlite database
+The test suite (93 tests) runs entirely against an in-memory sqlite database
 via Orchestra Testbench — no external services are contacted; every outbound
 HTTP call (Slack, Meta, OpenAI, Anthropic, Composio, Linear, HubSpot,
 Betterstack) is faked with `Http::fake()`/`Mail::fake()`/`Event::fake()` in
@@ -222,21 +277,18 @@ the relevant tests. `composer test` is exactly what CI runs
 Deliberately out of scope for this package as built — noted here rather than
 left implicit:
 
-- **Labels, SLA policies, and internal notes** are in the original data-model
-  spec (see BUILD_PROMPT.md §5) but weren't part of the 10-phase build order
-  actually executed; `Conversation` has `status`/`priority`/`assignee_id`
-  columns ready for them, but no `labels`, `sla_policies`, or `notes` tables
-  exist yet.
-- **Attachments** on messages aren't handled.
-- **Per-team AI provider selection** isn't implemented — `SHARED_INBOX_AI_DRIVER`
-  is one global choice, not configurable per team.
-- **A settings UI for entering integration API keys** doesn't exist — the
-  enable/disable toggle at `/shared-inbox/settings/integrations` works, but
-  credentials must be set directly on the `IntegrationSetting.config` column
-  today.
-- **Which email inbound format to support** was resolved as Postmark only
-  (see BUILD_PROMPT.md §11) — add a parser to `EmailChannelDriver` for SES,
-  Mailgun, etc.
+- **Attachments aren't forwarded to channel providers** — they're stored and
+  shown in the UI, but `ChannelDriver::send()` still only sends the reply
+  body. Per-provider attachment delivery (Slack file upload, email MIME
+  parts, ...) is a documented follow-up.
+- **Mentioning a teammate in a note doesn't send a notification** — the
+  mentioned user ids are recorded (`Note::mentioned_user_ids`), but nothing
+  dispatches a Laravel notification for them yet.
+- **SES inbound email isn't implemented** — Postmark and Mailgun are; add a
+  third `normalize*Inbound()` branch to `EmailChannelDriver` for SES's shape.
+- **Per-team AI provider selection is driver-only** — a team can choose which
+  configured driver to use, not a per-team API key/model on top of that
+  (those still come from the package-wide `config('shared-inbox.ai')`).
 
 ## Roadmap
 

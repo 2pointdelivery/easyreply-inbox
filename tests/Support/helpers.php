@@ -1,5 +1,8 @@
 <?php
 
+use Easyreply\Inbox\Models\Contact;
+use Easyreply\Inbox\Models\Conversation;
+use Easyreply\Inbox\Models\Inbox;
 use Easyreply\Inbox\Models\Team;
 use Easyreply\Inbox\Tests\Fixtures\User;
 
@@ -22,4 +25,15 @@ function createTeamWithAgent(?Team $team = null): array
     $team->users()->attach($user->id, ['role' => 'agent']);
 
     return [$team, $user];
+}
+
+function conversationForTeam(Team $team): Conversation
+{
+    $inbox = Inbox::factory()->for($team)->email()->create();
+    $contact = Contact::factory()->for($team)->create();
+
+    return Conversation::factory()->for($team)->create([
+        'inbox_id' => $inbox->id,
+        'contact_id' => $contact->id,
+    ]);
 }

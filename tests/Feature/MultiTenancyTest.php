@@ -5,17 +5,6 @@ use Easyreply\Inbox\Models\Conversation;
 use Easyreply\Inbox\Models\Inbox;
 use Easyreply\Inbox\Models\Team;
 
-function conversationForTeam(Team $team): Conversation
-{
-    $inbox = Inbox::factory()->for($team)->email()->create();
-    $contact = Contact::factory()->for($team)->create();
-
-    return Conversation::factory()->for($team)->create([
-        'inbox_id' => $inbox->id,
-        'contact_id' => $contact->id,
-    ]);
-}
-
 it('never lists another team\'s conversations in the inbox index', function () {
     [$teamA, $userA] = createTeamWithAgent();
     $teamB = Team::factory()->create();

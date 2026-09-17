@@ -51,11 +51,22 @@ class IntegrationSettingsController
             'config' => ['sometimes', 'array'],
         ]);
 
+        $existing = IntegrationSetting::query()
+            ->where('team_id', $team->id)
+            ->where('integration_key', $key)
+            ->first();
+
+        // Merge rather than replace: the credentials form only submits the
+        // fields the admin actually typed into, so a blank field must not
+        // wipe out a previously-saved one.
+        $newConfig = array_filter($validated['config'] ?? [], fn ($value) => $value !== '' && $value !== null);
+        $config = array_merge($existing?->config ?? [], $newConfig);
+
         IntegrationSetting::updateOrCreate(
             ['team_id' => $team->id, 'integration_key' => $key],
             [
                 'enabled' => $validated['enabled'],
-                'config' => $validated['config'] ?? [],
+                'config' => $config,
             ],
         );
 

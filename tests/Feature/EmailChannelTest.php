@@ -121,3 +121,27 @@ it('sends an outbound reply and records it as a sent message', function () {
             && $mail->bodyText === 'We are looking into it!';
     });
 });
+
+it('parses a mailgun-format inbound webhook when configured', function () {
+    config(['shared-inbox.channels.email.inbound_format' => 'mailgun']);
+
+    $team = Team::factory()->create();
+    $inbox = Inbox::factory()->for($team)->email()->create();
+
+    $response = $this->postJson("/shared-inbox/webhooks/email/{$inbox->id}", [
+        'from' => 'Casey Customer <customer@example.com>',
+        'subject' => 'Help with my order',
+        'stripped-text' => 'Where is my order?',
+        'Message-Id' => 'mg-msg-1',
+    ]);
+
+    $response->assertNoContent();
+
+    $contact = Contact::first();
+    expect($contact->display_name)->toBe('Casey Customer')
+        ->and($contact->channelIdentities()->where('external_id', 'customer@example.com')->exists())->toBeTrue();
+
+    $message = Conversation::first()->messages()->first();
+    expect($message->body)->toBe('Where is my order?')
+        ->and($message->external_id)->toBe('mg-msg-1');
+});

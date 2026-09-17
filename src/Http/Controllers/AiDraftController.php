@@ -5,15 +5,21 @@ namespace Easyreply\Inbox\Http\Controllers;
 use Easyreply\Inbox\Ai\AiDriverManager;
 use Easyreply\Inbox\Models\Conversation;
 use Easyreply\Inbox\Models\Message;
+use Easyreply\Inbox\Support\Contracts\CurrentTeam;
 use Illuminate\Http\JsonResponse;
 
 class AiDraftController
 {
-    public function store(Conversation $conversation, AiDriverManager $ai): JsonResponse
+    public function store(Conversation $conversation, AiDriverManager $ai, CurrentTeam $currentTeam): JsonResponse
     {
         $conversation->loadMissing('messages');
 
-        $draft = $ai->driver()->draftReply($conversation);
+        // A team's own ai_driver overrides config('shared-inbox.ai.driver')
+        // when set (see AiSettingsController) — global config stays the
+        // default for every team that hasn't chosen one.
+        $driverName = $currentTeam->resolve()?->ai_driver;
+
+        $draft = $ai->driver($driverName)->draftReply($conversation);
 
         if (! $draft) {
             return response()->json(['draft' => null], 200);

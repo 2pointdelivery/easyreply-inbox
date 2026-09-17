@@ -38,10 +38,9 @@ return [
         'email' => [
             'enabled' => true,
             'driver' => \Easyreply\Inbox\Channels\EmailChannelDriver::class,
-            // Which inbound webhook payload format to parse. See BUILD_PROMPT.md
-            // §11 open questions — Postmark's inbound webhook shape is the only
-            // one implemented so far; add a parser + set this per host app to
-            // support others.
+            // Which inbound webhook payload format to parse: 'postmark' or
+            // 'mailgun'. See EmailChannelDriver::normalizeInbound() — add a
+            // parser + a new value here to support another provider's shape.
             'inbound_format' => env('SHARED_INBOX_EMAIL_INBOUND_FORMAT', 'postmark'),
             // Shared secret the inbound webhook request must present (e.g. as a
             // query string or custom header, configured on the provider side)
@@ -126,6 +125,23 @@ return [
             'api_key' => env('ANTHROPIC_API_KEY'),
             'model' => env('ANTHROPIC_MODEL', 'claude-3-5-haiku-latest'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Attachments
+    |--------------------------------------------------------------------------
+    |
+    | Message attachments are stored on a standard Laravel filesystem disk —
+    | set to any disk already configured in the host app's config/filesystems.php.
+    | Attachments are stored and shown in the UI only; they are not yet
+    | forwarded through ChannelDriver::send() to the provider (documented
+    | follow-up — see README "Known limitations").
+    |
+    */
+    'attachments' => [
+        'disk' => env('SHARED_INBOX_ATTACHMENTS_DISK', 'local'),
+        'max_size_kb' => env('SHARED_INBOX_ATTACHMENTS_MAX_KB', 10240),
     ],
 
     /*

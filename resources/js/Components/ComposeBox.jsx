@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 export default function ComposeBox({ conversationId, pendingDraft }) {
   const [body, setBody] = useState(pendingDraft?.body ?? '')
   const [draftId, setDraftId] = useState(pendingDraft?.id ?? null)
+  const [files, setFiles] = useState([])
   const [drafting, setDrafting] = useState(false)
   const [sending, setSending] = useState(false)
   const [draftUnavailable, setDraftUnavailable] = useState(false)
@@ -46,12 +47,18 @@ export default function ComposeBox({ conversationId, pendingDraft }) {
     try {
       if (draftId) {
         await api.patch(`/shared-inbox/messages/${draftId}/send`, { body })
+      } else if (files.length > 0) {
+        const formData = new FormData()
+        formData.append('body', body)
+        files.forEach((file) => formData.append('attachments[]', file))
+        await api.postForm(`/shared-inbox/conversations/${conversationId}/messages`, formData)
       } else {
         await api.post(`/shared-inbox/conversations/${conversationId}/messages`, { body })
       }
 
       setBody('')
       setDraftId(null)
+      setFiles([])
       router.reload({ only: ['conversation'] })
     } catch {
       setError('Could not send that message. Try again.')
@@ -77,15 +84,45 @@ export default function ComposeBox({ conversationId, pendingDraft }) {
         value={body}
         onChange={(event) => setBody(event.target.value)}
       />
+      {!draftId && files.length > 0 && (
+        <ul className="flex flex-wrap gap-2">
+          {files.map((file, index) => (
+            <li key={`${file.name}-${index}`} className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
+              {file.name}
+              <button
+                type="button"
+                onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label={`Remove ${file.name}`}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={requestAiDraft}
-          disabled={drafting}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          {drafting ? 'Drafting…' : 'AI draft'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={requestAiDraft}
+            disabled={drafting}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {drafting ? 'Drafting…' : 'AI draft'}
+          </button>
+          {!draftId && (
+            <label className="cursor-pointer rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Attach
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(event) => setFiles((current) => [...current, ...Array.from(event.target.files ?? [])])}
+              />
+            </label>
+          )}
+        </div>
         <button
           type="submit"
           disabled={sending || body.trim() === ''}

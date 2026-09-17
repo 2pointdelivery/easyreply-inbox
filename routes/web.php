@@ -1,18 +1,22 @@
 <?php
 
 use Easyreply\Inbox\Http\Controllers\AiDraftController;
+use Easyreply\Inbox\Http\Controllers\AiSettingsController;
 use Easyreply\Inbox\Http\Controllers\ConversationController;
 use Easyreply\Inbox\Http\Controllers\ConversationLinkController;
 use Easyreply\Inbox\Http\Controllers\InboxController;
 use Easyreply\Inbox\Http\Controllers\IntegrationSettingsController;
+use Easyreply\Inbox\Http\Controllers\LabelController;
 use Easyreply\Inbox\Http\Controllers\McpCallbackController;
 use Easyreply\Inbox\Http\Controllers\McpSettingsController;
 use Easyreply\Inbox\Http\Controllers\MessageController;
+use Easyreply\Inbox\Http\Controllers\NoteController;
+use Easyreply\Inbox\Http\Controllers\SlaPolicyController;
 use Easyreply\Inbox\Http\Middleware\EnsureTeamContext;
 use Illuminate\Support\Facades\Route;
 
-// Other settings screens (channel connections, labels/SLA, team) are added
-// in later build phases — see BUILD_PROMPT.md §6.
+// Other settings screens (channel connections, team) are added in later
+// build phases — see BUILD_PROMPT.md §6.
 
 Route::prefix('shared-inbox')
     ->middleware(['web', EnsureTeamContext::class])
@@ -34,10 +38,41 @@ Route::prefix('shared-inbox')
         Route::post('/conversations/{conversation}/link', [ConversationLinkController::class, 'store'])
             ->name('shared-inbox.conversations.link');
 
+        Route::post('/conversations/{conversation}/notes', [NoteController::class, 'store'])
+            ->name('shared-inbox.conversations.notes.store');
+
+        Route::post('/conversations/{conversation}/labels/{label}', [ConversationController::class, 'attachLabel'])
+            ->name('shared-inbox.conversations.labels.attach');
+        Route::delete('/conversations/{conversation}/labels/{label}', [ConversationController::class, 'detachLabel'])
+            ->name('shared-inbox.conversations.labels.detach');
+
         Route::get('/settings/integrations', [IntegrationSettingsController::class, 'index'])
             ->name('shared-inbox.settings.integrations');
         Route::patch('/settings/integrations/{key}', [IntegrationSettingsController::class, 'update'])
             ->name('shared-inbox.settings.integrations.update');
+
+        Route::get('/settings/labels', [LabelController::class, 'index'])
+            ->name('shared-inbox.settings.labels');
+        Route::post('/settings/labels', [LabelController::class, 'store'])
+            ->name('shared-inbox.settings.labels.store');
+        Route::patch('/settings/labels/{label}', [LabelController::class, 'update'])
+            ->name('shared-inbox.settings.labels.update');
+        Route::delete('/settings/labels/{label}', [LabelController::class, 'destroy'])
+            ->name('shared-inbox.settings.labels.destroy');
+
+        Route::get('/settings/sla-policies', [SlaPolicyController::class, 'index'])
+            ->name('shared-inbox.settings.sla-policies');
+        Route::post('/settings/sla-policies', [SlaPolicyController::class, 'store'])
+            ->name('shared-inbox.settings.sla-policies.store');
+        Route::patch('/settings/sla-policies/{slaPolicy}', [SlaPolicyController::class, 'update'])
+            ->name('shared-inbox.settings.sla-policies.update');
+        Route::delete('/settings/sla-policies/{slaPolicy}', [SlaPolicyController::class, 'destroy'])
+            ->name('shared-inbox.settings.sla-policies.destroy');
+
+        Route::get('/settings/ai', [AiSettingsController::class, 'index'])
+            ->name('shared-inbox.settings.ai');
+        Route::patch('/settings/ai', [AiSettingsController::class, 'update'])
+            ->name('shared-inbox.settings.ai.update');
 
         Route::get('/settings/mcp', [McpSettingsController::class, 'index'])
             ->name('shared-inbox.settings.mcp');

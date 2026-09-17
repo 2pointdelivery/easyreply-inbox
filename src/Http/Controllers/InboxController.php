@@ -5,6 +5,8 @@ namespace Easyreply\Inbox\Http\Controllers;
 use Easyreply\Inbox\Integrations\IntegrationManager;
 use Easyreply\Inbox\Models\Conversation;
 use Easyreply\Inbox\Models\Message;
+use Easyreply\Inbox\Models\Note;
+use Easyreply\Inbox\Models\Team;
 use Easyreply\Inbox\Support\Contracts\CurrentTeam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -36,7 +38,7 @@ class InboxController
 
     public function show(Conversation $conversation, CurrentTeam $currentTeam, IntegrationManager $integrations): Response
     {
-        $conversation->load(['contact', 'inbox', 'messages']);
+        $conversation->load(['contact', 'inbox', 'messages.attachments', 'labels', 'notes.author']);
 
         // AI drafts (status = draft) aren't shown in the sent-message
         // thread — the most recent one is surfaced separately so the
@@ -47,18 +49,49 @@ class InboxController
             ->sortByDesc('created_at')
             ->first();
 
+        $team = $currentTeam->resolve();
+
         return Inertia::render('Inbox/Show', [
             'conversation' => [
                 'id' => $conversation->id,
                 'subject' => $conversation->subject,
                 'status' => $conversation->status,
                 'priority' => $conversation->priority,
+                'sla_due_at' => $conversation->sla_due_at,
                 'contact' => $this->contactSummary($conversation),
                 'messages' => $sentMessages->values()->map(fn ($message) => $this->messageSummary($message)),
                 'pending_draft' => $pendingDraft ? $this->messageSummary($pendingDraft) : null,
+                'labels' => $conversation->labels->map(fn ($label) => [
+                    'id' => $label->id,
+                    'name' => $label->name,
+                    'color' => $label->color,
+                ]),
+                'notes' => $conversation->notes->map(fn (Note $note) => $this->noteSummary($note)),
             ],
             'sidebar' => $this->sidebarData($conversation, $currentTeam, $integrations),
+            'team_members' => $team ? $this->teamMemberOptions($team) : [],
         ]);
+    }
+
+    /**
+     * @return array<int, array{id: int, name: ?string}>
+     */
+    protected function teamMemberOptions(Team $team): array
+    {
+        return $team->users()->get(['users.id', 'users.name'])
+            ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])
+            ->all();
+    }
+
+    protected function noteSummary(Note $note): array
+    {
+        return [
+            'id' => $note->id,
+            'body' => $note->body,
+            'mentioned_user_ids' => $note->mentioned_user_ids,
+            'author' => $note->author?->name,
+            'created_at' => $note->created_at,
+        ];
     }
 
     /**
@@ -92,6 +125,13 @@ class InboxController
             'ai_generated' => $message->ai_generated,
             'status' => $message->status,
             'created_at' => $message->created_at,
+            'attachments' => $message->attachments->map(fn ($attachment) => [
+                'id' => $attachment->id,
+                'filename' => $attachment->filename,
+                'url' => $attachment->url(),
+                'mime_type' => $attachment->mime_type,
+                'size' => $attachment->size,
+            ]),
         ];
     }
 

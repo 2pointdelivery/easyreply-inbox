@@ -23,6 +23,29 @@ async function request(method, url, body) {
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 
+  return handleResponse(url, response)
+}
+
+/**
+ * Multipart submission (message attachments) — no Content-Type header, the
+ * browser sets it (with the multipart boundary) from the FormData body.
+ */
+async function requestForm(url, formData) {
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': csrfToken(),
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: formData,
+  })
+
+  return handleResponse(url, response)
+}
+
+async function handleResponse(url, response) {
   const data = await response.json().catch(() => null)
 
   if (!response.ok) {
@@ -38,4 +61,5 @@ async function request(method, url, body) {
 export const api = {
   post: (url, body) => request('POST', url, body),
   patch: (url, body) => request('PATCH', url, body),
+  postForm: (url, formData) => requestForm(url, formData),
 }
