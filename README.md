@@ -330,6 +330,40 @@ ELEVENLABS_AGENT_ID=...
   `/shared-inbox/settings/voice` (global default + team override).
   Broadcasts `CallLogged`/`CallUpdated` on the existing team/conversation
   channels with polling fallback.
+- **Callback dispatch:** `php artisan shared-inbox:dispatch-voice-schedules`
+  dials due callbacks (widget requests + scheduled follow-ups) within the
+  per-minute rate limit — schedule it (cron/scheduler) for callbacks to go
+  out.
+
+## Website widget (floating chat + call requests)
+
+One script tag adds a floating chat/call bubble to any site — no account
+needed for visitors:
+
+```html
+<script src="https://your-app.test/shared-inbox/widget.js"
+        data-inbox="123" data-token="..." defer></script>
+```
+
+Get the snippet at `/shared-inbox/settings/widget` (owners/admins only):
+create a Website inbox, enable it, copy the snippet. Regenerate rotates the
+token (existing embeds stop working until updated).
+
+- **Live chat:** visitor starts a session (name/email optional) → new
+  `Contact` + `Conversation` on the widget inbox, visible instantly in the
+  team inbox (`MessageReceived` still fires). Agent replies send through the
+  standard reply box; the guest picks them up via polling. No login, no
+  session — each visitor holds a random session token and every endpoint is
+  throttled (`start` 10/min, `call-request` 5/min).
+- **Calls:** the Call tab shows your dial-in number
+  (`SHARED_INBOX_VOICE_NUMBER`) plus a "Call me back" form (E.164 number +
+  optional topic). Requests queue as `VoiceSchedule` rows the AI agent dials
+  via the dispatch command above; transcripts stay text-only per the
+  no-audio policy. Disable with `SHARED_INBOX_VOICE_WIDGET_CALLBACKS=false`.
+- **Internals:** `WidgetChannelDriver` (agent replies are stored + polled,
+  delivery is a no-op), public endpoints under `shared-inbox/widget/*`
+  (`routes/api.php`), iframe page + loader served by `WidgetController`
+  (all widget CSS/JS lives in the iframe, so host-page styles never clash).
 
 ## Roadmap
 

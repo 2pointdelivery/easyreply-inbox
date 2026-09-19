@@ -4,6 +4,9 @@ use Easyreply\Inbox\Http\Controllers\EmailWebhookController;
 use Easyreply\Inbox\Http\Controllers\MetaWebhookController;
 use Easyreply\Inbox\Http\Controllers\SlackWebhookController;
 use Easyreply\Inbox\Http\Controllers\VoiceWebhookController;
+use Easyreply\Inbox\Http\Controllers\WidgetCallController;
+use Easyreply\Inbox\Http\Controllers\WidgetChatController;
+use Easyreply\Inbox\Http\Controllers\WidgetController;
 use Illuminate\Support\Facades\Route;
 
 // This file is deliberately just external, unauthenticated (signature-
@@ -46,4 +49,29 @@ Route::prefix('shared-inbox')
         Route::post('voice/{provider}/transfer-callback', [VoiceWebhookController::class, 'transfer'])
             ->middleware('throttle:60,1')
             ->name('shared-inbox.voice.transfer');
+
+        // Public website widget (floating chat + call requests). Stateless,
+        // inbox-token authed, no session — guests are not logged-in users.
+        // Tighter throttles on session-creating and dial-triggering routes
+        // to blunt spam/abuse.
+        Route::get('widget.js', [WidgetController::class, 'loader'])
+            ->name('shared-inbox.widget.loader');
+        Route::get('widget', [WidgetController::class, 'page'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.widget.page');
+        Route::post('widget/{inbox}/start', [WidgetChatController::class, 'start'])
+            ->middleware('throttle:10,1')
+            ->name('shared-inbox.widget.start');
+        Route::get('widget/{inbox}/messages', [WidgetChatController::class, 'index'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.widget.messages.index');
+        Route::post('widget/{inbox}/messages', [WidgetChatController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.widget.messages.store');
+        Route::get('widget/{inbox}/status', [WidgetChatController::class, 'status'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.widget.status');
+        Route::post('widget/{inbox}/call-request', [WidgetCallController::class, 'store'])
+            ->middleware('throttle:5,1')
+            ->name('shared-inbox.widget.call-request');
     });

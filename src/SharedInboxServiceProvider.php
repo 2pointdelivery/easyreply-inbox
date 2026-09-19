@@ -8,6 +8,7 @@ use Easyreply\Inbox\Broadcasting\AuthorizeTeamChannel;
 use Easyreply\Inbox\Channels\ChannelManager;
 use Easyreply\Inbox\Console\Commands\InstallCommand;
 use Easyreply\Inbox\Console\Commands\PurgeVoiceTranscripts;
+use Easyreply\Inbox\Console\Commands\DispatchVoiceSchedulesCommand;
 use Easyreply\Inbox\Integrations\IntegrationManager;
 use Easyreply\Inbox\Mcp\ComposioClient;
 use Easyreply\Inbox\Mcp\McpToolProvider;
@@ -32,6 +33,7 @@ class SharedInboxServiceProvider extends PackageServiceProvider
             ->hasRoute('api')
             ->hasCommand(InstallCommand::class)
             ->hasCommand(PurgeVoiceTranscripts::class)
+            ->hasCommand(DispatchVoiceSchedulesCommand::class)
             ->discoversMigrations();
 
         // Deliberately does NOT call ->runsMigrations(): migrations are

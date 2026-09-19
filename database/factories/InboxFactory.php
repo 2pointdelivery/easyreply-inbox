@@ -5,6 +5,7 @@ namespace Easyreply\Inbox\Database\Factories;
 use Easyreply\Inbox\Models\Inbox;
 use Easyreply\Inbox\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Inbox>
@@ -62,6 +63,15 @@ class InboxFactory extends Factory
             'channel_type' => 'voice',
             'name' => 'Voice',
             'config' => ['number' => '+15550000000'],
+        ]);
+    }
+
+    public function widget(): static
+    {
+        return $this->state(fn () => [
+            'channel_type' => 'widget',
+            'name' => 'Website',
+            'config' => ['widget_enabled' => true, 'widget_token' => Str::random(40)],
         ]);
     }
 }

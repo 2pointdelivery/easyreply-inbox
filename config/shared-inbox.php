@@ -76,6 +76,15 @@ return [
             'verify_token' => env('INSTAGRAM_WEBHOOK_VERIFY_TOKEN'),
         ],
 
+        'widget' => [
+            'enabled' => true,
+            'driver' => \Easyreply\Inbox\Channels\WidgetChannelDriver::class,
+            // The floating website widget (live chat + call requests) needs
+            // no provider credentials: per-inbox exposure is gated by the
+            // Inbox's own `config.widget_enabled` + `config.widget_token`
+            // (managed at /shared-inbox/settings/widget), not here.
+        ],
+
     ],
 
     /*
@@ -212,6 +221,10 @@ return [
             'event_callbacks' => env('SHARED_INBOX_VOICE_EVENT_CALLBACKS', false),
             'bulk' => env('SHARED_INBOX_VOICE_BULK', false),
             'rate_per_min' => env('SHARED_INBOX_VOICE_RATE_PER_MIN', 10),
+            // Website widget "call me back" requests. Independent from bulk:
+            // each request is a single per-visitor callback, throttled per
+            // IP at the endpoint.
+            'widget_callbacks' => env('SHARED_INBOX_VOICE_WIDGET_CALLBACKS', true),
         ],
 
         'elevenlabs' => [

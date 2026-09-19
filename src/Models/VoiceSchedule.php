@@ -25,10 +25,12 @@ class VoiceSchedule extends Model
         'recurrence',
         'status',
         'conversation_id',
+        'meta',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'meta' => 'array',
     ];
 
     protected static function newFactory(): VoiceScheduleFactory

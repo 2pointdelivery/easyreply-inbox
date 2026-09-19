@@ -16,6 +16,7 @@ use Easyreply\Inbox\Http\Controllers\NoteController;
 use Easyreply\Inbox\Http\Controllers\SlaPolicyController;
 use Easyreply\Inbox\Http\Controllers\VoiceScheduleController;
 use Easyreply\Inbox\Http\Controllers\VoiceSettingsController;
+use Easyreply\Inbox\Http\Controllers\WidgetSettingsController;
 use Easyreply\Inbox\Http\Middleware\EnsureTeamContext;
 use Illuminate\Support\Facades\Route;
 
@@ -109,4 +110,13 @@ Route::prefix('shared-inbox')
             ->name('shared-inbox.voice.schedules.store');
         Route::delete('/voice/schedules/{voiceSchedule}', [VoiceScheduleController::class, 'destroy'])
             ->name('shared-inbox.voice.schedules.destroy');
+
+        Route::get('/settings/widget', [WidgetSettingsController::class, 'index'])
+            ->name('shared-inbox.settings.widget');
+        Route::post('/settings/widget', [WidgetSettingsController::class, 'store'])
+            ->name('shared-inbox.settings.widget.store');
+        Route::patch('/settings/widget/{inbox}', [WidgetSettingsController::class, 'update'])
+            ->name('shared-inbox.settings.widget.update');
+        Route::post('/settings/widget/{inbox}/regenerate', [WidgetSettingsController::class, 'regenerate'])
+            ->name('shared-inbox.settings.widget.regenerate');
     });
