@@ -270,7 +270,7 @@ via Orchestra Testbench — no external services are contacted; every outbound
 HTTP call (Slack, Meta, OpenAI, Anthropic, Composio, Linear, HubSpot,
 Betterstack) is faked with `Http::fake()`/`Mail::fake()`/`Event::fake()` in
 the relevant tests. `composer test` is exactly what CI runs
-(`.github/workflows/tests.yml`), across PHP 8.2/8.3 × Laravel 10/11.
+(`.github/workflows/tests.yml`), across PHP 8.3/8.4 × Laravel 11/12/13.
 
 ## Known limitations / beyond v1
 

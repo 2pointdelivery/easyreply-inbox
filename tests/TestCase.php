@@ -47,7 +47,11 @@ class TestCase extends Orchestra
         // actually exists on disk. Point it at the package's own
         // resources/js/Pages (there's no host app's resources/js/Pages in
         // package tests) so the assertion is genuine, not disabled.
+        // v1/v2 read `inertia.testing.page_paths`; v3+ reads
+        // `inertia.pages.paths` — set both so the suite passes on
+        // every supported Inertia major.
         $app['config']->set('inertia.testing.page_paths', [__DIR__.'/../resources/js/Pages']);
+        $app['config']->set('inertia.pages.paths', [__DIR__.'/../resources/js/Pages']);
     }
 
     protected function defineDatabaseMigrations(): void
