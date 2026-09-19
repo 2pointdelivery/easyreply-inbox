@@ -162,6 +162,81 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Voice Reception Agents
+    |--------------------------------------------------------------------------
+    |
+    | Provider-agnostic AI receptionists (ElevenLabs, OpenAI Realtime,
+    | Aircall, Vapi/Retell/Bland via generic-sip). `driver` resolves via the
+    | VoiceAgentManager. Ships a NullVoiceDriver by default (log-only, never
+    | dials) so the package works with zero voice config.
+    |
+    | Strict no-audio policy: transcript + summary + metadata only. The
+    | package never fetches, persists, or returns audio bytes or recording
+    | URLs — providers may host audio on their side, but no link is stored.
+    |
+    */
+    'voice' => [
+        'driver' => env('SHARED_INBOX_VOICE_DRIVER', 'null'),
+
+        'drivers' => [
+            'null' => \Easyreply\Inbox\Voice\NullVoiceDriver::class,
+            'elevenlabs' => \Easyreply\Inbox\Voice\ElevenLabsVoiceDriver::class,
+            'openai-realtime' => \Easyreply\Inbox\Voice\OpenAiRealtimeVoiceDriver::class,
+            'aircall' => \Easyreply\Inbox\Voice\AircallVoiceDriver::class,
+            'generic-sip' => \Easyreply\Inbox\Voice\GenericSipVoiceDriver::class,
+        ],
+
+        // Single shared number for v1 (E.164). Teams route via IVR selection.
+        'shared_number_e164' => env('SHARED_INBOX_VOICE_NUMBER'),
+
+        'routing' => [
+            'mode' => env('SHARED_INBOX_VOICE_ROUTING', 'ivr-team-select'),
+            'prompt' => 'Thank you for calling. Please say which department you need.',
+            'business_hours' => null,
+        ],
+
+        'recording' => [
+            'store_audio' => false,
+            'store_recording_url' => false,
+        ],
+
+        'retention_days' => env('SHARED_INBOX_VOICE_RETENTION_DAYS', 90),
+
+        'transfer' => [
+            'enabled' => env('SHARED_INBOX_VOICE_TRANSFER_ENABLED', true),
+            'default_target_e164' => env('SHARED_INBOX_VOICE_TRANSFER_TARGET'),
+        ],
+
+        'outbound' => [
+            'click_to_call' => env('SHARED_INBOX_VOICE_CLICK_TO_CALL', true),
+            'event_callbacks' => env('SHARED_INBOX_VOICE_EVENT_CALLBACKS', false),
+            'bulk' => env('SHARED_INBOX_VOICE_BULK', false),
+            'rate_per_min' => env('SHARED_INBOX_VOICE_RATE_PER_MIN', 10),
+        ],
+
+        'elevenlabs' => [
+            'api_key' => env('ELEVENLABS_API_KEY'),
+            'agent_id' => env('ELEVENLABS_AGENT_ID'),
+            'webhook_secret' => env('ELEVENLABS_WEBHOOK_SECRET'),
+        ],
+
+        'openai' => [
+            'realtime_api_key' => env('OPENAI_API_KEY'),
+            'webhook_secret' => env('OPENAI_VOICE_WEBHOOK_SECRET'),
+        ],
+
+        'aircall' => [
+            'api_key' => env('AIRCALL_API_KEY'),
+            'webhook_secret' => env('AIRCALL_WEBHOOK_SECRET'),
+        ],
+
+        'generic_sip' => [
+            'webhook_secret' => env('VOICE_WEBHOOK_SECRET'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Optional Integrations
     |--------------------------------------------------------------------------
     |

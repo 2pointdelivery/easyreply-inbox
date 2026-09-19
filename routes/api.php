@@ -3,6 +3,7 @@
 use Easyreply\Inbox\Http\Controllers\EmailWebhookController;
 use Easyreply\Inbox\Http\Controllers\MetaWebhookController;
 use Easyreply\Inbox\Http\Controllers\SlackWebhookController;
+use Easyreply\Inbox\Http\Controllers\VoiceWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // This file is deliberately just external, unauthenticated (signature-
@@ -33,4 +34,16 @@ Route::prefix('shared-inbox')
             ->whereIn('channel', ['whatsapp', 'instagram'])
             ->middleware('throttle:60,1')
             ->name('shared-inbox.webhooks.meta.handle');
+
+        // Voice agent provider webhooks (stateless, signature-verified).
+        // Never handles audio — transcript + metadata only.
+        Route::post('webhooks/voice/{provider}', [VoiceWebhookController::class, 'handle'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.webhooks.voice');
+        Route::post('voice/{provider}/status-callback', [VoiceWebhookController::class, 'status'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.voice.status');
+        Route::post('voice/{provider}/transfer-callback', [VoiceWebhookController::class, 'transfer'])
+            ->middleware('throttle:60,1')
+            ->name('shared-inbox.voice.transfer');
     });

@@ -55,4 +55,13 @@ class InboxFactory extends Factory
             'config' => ['access_token' => 'test-token', 'page_id' => '1234567890'],
         ]);
     }
+
+    public function voice(): static
+    {
+        return $this->state(fn () => [
+            'channel_type' => 'voice',
+            'name' => 'Voice',
+            'config' => ['number' => '+15550000000'],
+        ]);
+    }
 }

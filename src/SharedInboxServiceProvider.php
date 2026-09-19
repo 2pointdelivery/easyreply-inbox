@@ -7,10 +7,12 @@ use Easyreply\Inbox\Broadcasting\AuthorizeConversationChannel;
 use Easyreply\Inbox\Broadcasting\AuthorizeTeamChannel;
 use Easyreply\Inbox\Channels\ChannelManager;
 use Easyreply\Inbox\Console\Commands\InstallCommand;
+use Easyreply\Inbox\Console\Commands\PurgeVoiceTranscripts;
 use Easyreply\Inbox\Integrations\IntegrationManager;
 use Easyreply\Inbox\Mcp\ComposioClient;
 use Easyreply\Inbox\Mcp\McpToolProvider;
 use Easyreply\Inbox\Support\Contracts\CurrentTeam as CurrentTeamContract;
+use Easyreply\Inbox\Voice\VoiceAgentManager;
 use Illuminate\Contracts\Broadcasting\Factory as BroadcastingFactory;
 use Illuminate\Support\Facades\Broadcast;
 use Inertia\Inertia;
@@ -29,6 +31,7 @@ class SharedInboxServiceProvider extends PackageServiceProvider
             ->hasRoute('web')
             ->hasRoute('api')
             ->hasCommand(InstallCommand::class)
+            ->hasCommand(PurgeVoiceTranscripts::class)
             ->discoversMigrations();
 
         // Deliberately does NOT call ->runsMigrations(): migrations are
@@ -75,6 +78,7 @@ class SharedInboxServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(ChannelManager::class);
         $this->app->singleton(AiDriverManager::class);
+        $this->app->singleton(VoiceAgentManager::class);
         $this->app->singleton(ComposioClient::class);
         $this->app->singleton(McpToolProvider::class);
         $this->app->singleton(IntegrationManager::class);

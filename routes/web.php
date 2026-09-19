@@ -2,6 +2,8 @@
 
 use Easyreply\Inbox\Http\Controllers\AiDraftController;
 use Easyreply\Inbox\Http\Controllers\AiSettingsController;
+use Easyreply\Inbox\Http\Controllers\CallLogController;
+use Easyreply\Inbox\Http\Controllers\ClickToCallController;
 use Easyreply\Inbox\Http\Controllers\ConversationController;
 use Easyreply\Inbox\Http\Controllers\ConversationLinkController;
 use Easyreply\Inbox\Http\Controllers\InboxController;
@@ -12,6 +14,8 @@ use Easyreply\Inbox\Http\Controllers\McpSettingsController;
 use Easyreply\Inbox\Http\Controllers\MessageController;
 use Easyreply\Inbox\Http\Controllers\NoteController;
 use Easyreply\Inbox\Http\Controllers\SlaPolicyController;
+use Easyreply\Inbox\Http\Controllers\VoiceScheduleController;
+use Easyreply\Inbox\Http\Controllers\VoiceSettingsController;
 use Easyreply\Inbox\Http\Middleware\EnsureTeamContext;
 use Illuminate\Support\Facades\Route;
 
@@ -85,4 +89,24 @@ Route::prefix('shared-inbox')
         // OAuth flow completes.
         Route::get('/mcp/callback', McpCallbackController::class)
             ->name('shared-inbox.mcp.callback');
+
+        Route::get('/voice/calls', [CallLogController::class, 'index'])
+            ->name('shared-inbox.voice.calls.index');
+        Route::get('/voice/calls/{callLog}', [CallLogController::class, 'show'])
+            ->name('shared-inbox.voice.calls.show');
+        Route::post('/voice/calls/{callLog}/actions/retry', [CallLogController::class, 'retry'])
+            ->name('shared-inbox.voice.calls.retry');
+
+        Route::post('/conversations/{conversation}/click-to-call', [ClickToCallController::class, 'store'])
+            ->name('shared-inbox.conversations.click-to-call');
+
+        Route::get('/settings/voice', [VoiceSettingsController::class, 'index'])
+            ->name('shared-inbox.settings.voice');
+        Route::patch('/settings/voice', [VoiceSettingsController::class, 'update'])
+            ->name('shared-inbox.settings.voice.update');
+
+        Route::post('/voice/schedules', [VoiceScheduleController::class, 'store'])
+            ->name('shared-inbox.voice.schedules.store');
+        Route::delete('/voice/schedules/{voiceSchedule}', [VoiceScheduleController::class, 'destroy'])
+            ->name('shared-inbox.voice.schedules.destroy');
     });

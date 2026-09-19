@@ -15,6 +15,15 @@ class Team extends Model
         'name',
         'slug',
         'ai_driver',
+        'voice_driver',
+        'voice_prompt',
+        'voice_number_override',
+        'transfer_target',
+        'business_hours',
+    ];
+
+    protected $casts = [
+        'business_hours' => 'array',
     ];
 
     /**

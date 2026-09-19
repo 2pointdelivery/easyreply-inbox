@@ -290,6 +290,47 @@ left implicit:
   configured driver to use, not a per-team API key/model on top of that
   (those still come from the package-wide `config('shared-inbox.ai')`).
 
+## AI reception agents (voice)
+
+Provider-agnostic voice receptionists with call log, transcript + summary,
+sentiment triage, and post-call actions. Drivers: `null` (log-only default),
+`elevenlabs`, `openai-realtime`, `aircall`, `generic-sip` (covers
+Vapi/Retell/Bland via payload normalizers) — resolved via `VoiceAgentManager`
+from `config('shared-inbox.voice.driver')`, with per-team override
+(`teams.voice_driver`, `/shared-inbox/settings/voice`).
+
+```
+SHARED_INBOX_VOICE_DRIVER=elevenlabs
+SHARED_INBOX_VOICE_NUMBER=+15550000000
+ELEVENLABS_API_KEY=...
+ELEVENLABS_AGENT_ID=...
+```
+
+- **Single shared number (v1):** teams route via IVR team-select (`team_id`
+  on the webhook) or the agent default. Each call creates/links a `CallLog`
+  + `Contact` (voice E.164 identity) + `Conversation` on a `voice` inbox +
+  thread message, then runs triage (priority suggestion → SLA), HubSpot
+  context lookup, Slack routing ping, and audits each step to `call_actions`.
+- **Strict no-audio policy:** transcript + summary + metadata only. No audio
+  bytes fetched, no recording URLs persisted (no such columns exist), PII
+  digit-runs redacted, provider secrets scrubbed from `raw_payload`.
+  Retention: `php artisan shared-inbox:purge-voice-transcripts` wipes
+  transcripts/summaries older than `voice.retention_days` (default 90),
+  keeping metadata + audit rows.
+- **Outbound:** click-to-call from a conversation, event auto-callbacks
+  (opt-in), scheduled/bulk via `voice_schedules` (admin-only, rate-limited).
+  Live transfer via driver `transferCall()` with outcome logged; on failure
+  the call falls back to message + Slack notify.
+- **Webhooks** (`routes/api.php`, throttled, signature-verified, 401 on
+  failure, noise ignored): `POST webhooks/voice/{provider}`,
+  `POST voice/{provider}/status-callback`,
+  `POST voice/{provider}/transfer-callback`.
+- **UI:** `/shared-inbox/voice/calls` (log list),
+  `/shared-inbox/voice/calls/{id}` (transcript + actions + retry),
+  `/shared-inbox/settings/voice` (global default + team override).
+  Broadcasts `CallLogged`/`CallUpdated` on the existing team/conversation
+  channels with polling fallback.
+
 ## Roadmap
 
 See [BUILD_PROMPT.md](BUILD_PROMPT.md) §10 for the full phased build order:
