@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react'
 import { useState } from 'react'
+import ClickToCallButton from '../../Components/ClickToCallButton'
 import ComposeBox from '../../Components/ComposeBox'
 import ConversationSidebar from '../../Components/ConversationSidebar'
 import LabelPicker from '../../Components/LabelPicker'
@@ -32,6 +33,9 @@ export default function Show({ conversation, sidebar, team_members: teamMembers 
           )}
         </p>
         <LabelPicker conversationId={conversation.id} labels={conversation.labels} />
+        {(conversation.contact?.phones?.length ?? 0) > 0 && (
+          <ClickToCallButton conversationId={conversation.id} defaultNumber={conversation.contact.phones[0]} />
+        )}
       </header>
 
       <ConversationSidebar sidebar={sidebar} />

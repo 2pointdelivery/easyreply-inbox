@@ -266,3 +266,38 @@ it('purges transcripts past retention while keeping metadata', function () {
         ->and($fresh->fresh()->transcript)->not->toBeNull()
         ->and(CallLog::count())->toBe(2);
 });
+
+it('links the same caller number to two different teams independently', function () {
+    [$teamA] = createTeamWithAgent();
+    [$teamB] = createTeamWithAgent();
+
+    foreach ([$teamA->id, $teamB->id] as $i => $teamId) {
+        $this->postJson("/shared-inbox/webhooks/voice/null?team_id={$teamId}", [
+            'call_id' => "call-shared-{$i}",
+            'from' => '+15551119999',
+            'to' => '+15550000000',
+            'transcript' => 'Hello from a shared number',
+        ])->assertNoContent();
+    }
+
+    expect(CallLog::count())->toBe(2)
+        ->and(Contact::count())->toBe(2)
+        ->and(Conversation::count())->toBe(2);
+});
+
+it('exposes callable phones on the conversation page for click-to-call', function () {
+    [$team, $user] = createTeamWithAgent();
+    $inbox = Inbox::factory()->for($team)->voice()->create();
+    $contact = Contact::factory()->for($team)->create();
+    $contact->channelIdentities()->create(['channel_type' => 'voice', 'external_id' => '+15551110013']);
+    $conversation = Conversation::factory()->for($team)->create([
+        'inbox_id' => $inbox->id,
+        'contact_id' => $contact->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get("/shared-inbox/conversations/{$conversation->id}")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('conversation.contact.phones.0', '+15551110013'));
+});

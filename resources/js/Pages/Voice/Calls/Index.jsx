@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react'
-import { useSharedInboxChannel } from '../../hooks/useSharedInboxChannel.js'
+import { useSharedInboxChannel } from '../../../hooks/useSharedInboxChannel.js'
 
 export default function Index({ calls, team_id }) {
   useSharedInboxChannel(team_id ? `team.${team_id}` : null, ['CallLogged', 'CallUpdated'])

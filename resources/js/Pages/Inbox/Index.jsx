@@ -4,9 +4,12 @@ import StatusFilter from '../../Components/StatusFilter'
 import { useSharedInboxChannel } from '../../hooks/useSharedInboxChannel'
 
 const SETTINGS_LINKS = [
+  ['/shared-inbox/voice/calls', 'Calls'],
   ['/shared-inbox/settings/labels', 'Labels'],
   ['/shared-inbox/settings/sla-policies', 'SLA'],
   ['/shared-inbox/settings/ai', 'AI'],
+  ['/shared-inbox/settings/voice', 'Voice'],
+  ['/shared-inbox/settings/widget', 'Widget'],
   ['/shared-inbox/settings/integrations', 'Integrations'],
   ['/shared-inbox/settings/mcp', 'MCP'],
 ]

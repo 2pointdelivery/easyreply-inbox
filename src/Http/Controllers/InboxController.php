@@ -38,7 +38,7 @@ class InboxController
 
     public function show(Conversation $conversation, CurrentTeam $currentTeam, IntegrationManager $integrations): Response
     {
-        $conversation->load(['contact', 'inbox', 'messages.attachments', 'labels', 'notes.author']);
+        $conversation->load(['contact.channelIdentities', 'inbox', 'messages.attachments', 'labels', 'notes.author']);
 
         // AI drafts (status = draft) aren't shown in the sent-message
         // thread — the most recent one is surfaced separately so the
@@ -154,9 +154,21 @@ class InboxController
             return null;
         }
 
+        // Callable numbers for the click-to-call button: voice/widget
+        // identities holding real phone numbers (visitor session tokens
+        // and emails are excluded).
+        $phones = $conversation->contact->channelIdentities
+            ?->filter(fn ($identity) => in_array($identity->channel_type, ['voice', 'widget'], true)
+                && preg_match('/^\+[1-9]\d{7,14}$/', (string) $identity->external_id))
+            ->map(fn ($identity) => $identity->external_id)
+            ->unique()
+            ->values()
+            ->all() ?? [];
+
         return [
             'id' => $conversation->contact->id,
             'display_name' => $conversation->contact->display_name,
+            'phones' => $phones,
         ];
     }
 }

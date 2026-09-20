@@ -34,9 +34,13 @@ class InstallCommand extends Command
         $this->line('     Instagram number) — see README.md for each channel\'s webhook URL and setup.');
         $this->line('  5. Set SHARED_INBOX_AI_DRIVER and a provider key in .env if using AI drafting.');
         $this->line('  6. Set COMPOSIO_API_KEY in .env if using MCP tool access.');
-        $this->line('  7. Wire up your Vite/Inertia build to resolve this package\'s pages — see README.md');
+        $this->line('  7. Set SHARED_INBOX_VOICE_DRIVER + SHARED_INBOX_VOICE_NUMBER in .env if using');
+        $this->line('     AI reception agents; visit /shared-inbox/settings/voice for per-team overrides.');
+        $this->line('  8. Visit /shared-inbox/settings/widget to enable the floating website chat/call');
+        $this->line('     bubble, and schedule `shared-inbox:dispatch-voice-schedules` for callbacks.');
+        $this->line('  9. Wire up your Vite/Inertia build to resolve this package\'s pages — see README.md');
         $this->line('     "Frontend integration".');
-        $this->line('  8. Configure a broadcaster (Reverb/Pusher/Ably) and Laravel Echo if you want live');
+        $this->line('  10. Configure a broadcaster (Reverb/Pusher/Ably) and Laravel Echo if you want live');
         $this->line('     updates — see README.md "Real-time". The UI works via polling without it.');
         $this->newLine();
         $this->line('Full setup details: README.md');
